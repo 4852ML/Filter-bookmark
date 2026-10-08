@@ -54,67 +54,66 @@ internal static class BookmarkStore {
 
 internal sealed class ProfileChoice { internal string Path; internal string Name; public override string ToString() { return Name; } }
 internal sealed class InstallerForm : Form {
-    string selectedBrowser="Chrome"; readonly Button[] browserButtons=new Button[3]; readonly ComboBox profiles=new ComboBox(); readonly Button install=new Button(); readonly Label status=new Label(),intro=new Label();
+    readonly InstallerFonts uiFonts=new InstallerFonts();string selectedBrowser="Chrome"; readonly Button[] browserButtons=new Button[3]; readonly ComboBox profiles=new ComboBox(); readonly Button install=new Button(); readonly Label status=new Label(),intro=new Label();
     internal InstallerForm() {
-        Text="Cài phần mềm lọc hồ sơ tạo báo cáo"; ClientSize=new Size(640,490);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(247,249,243);
-        var title=new Label {Text="Thêm nút lọc hồ sơ vào Chrome",Location=new Point(28,22),Size=new Size(585,36),Font=new Font("Segoe UI",17,FontStyle.Bold),ForeColor=Color.FromArgb(41,64,31)};
-        intro.Location=new Point(30,64);intro.Size=new Size(580,40);
-        var browserLabel=new Label{Text="Chọn trình duyệt",Location=new Point(30,112),Size=new Size(180,22)};
-        string[] names={"Chrome","Edge","Firefox"};
-        for(int i=0;i<3;i++){int index=i;var button=new Button{Text=names[i],Location=new Point(30+i*104,140),Size=new Size(96,58),FlatStyle=FlatStyle.Flat,TextAlign=ContentAlignment.MiddleRight,Padding=new Padding(0,0,5,0),Font=new Font("Segoe UI",9)};button.FlatAppearance.BorderSize=1;button.Paint+=(sender,args)=>DrawIcon(args.Graphics,index,8,15);button.Click+=(sender,args)=>{selectedBrowser=names[index];title.Text="Thêm nút lọc hồ sơ vào "+selectedBrowser;UpdateBrowserButtons();LoadProfiles();};browserButtons[i]=button;Controls.Add(button);}
-        var profileLabel=new Label{Text="Hồ sơ sử dụng",Location=new Point(356,112),Size=new Size(340,22)};profiles.Location=new Point(356,153);profiles.Size=new Size(252,30);profiles.DropDownStyle=ComboBoxStyle.DropDownList;
-        var picture=new Panel{Location=new Point(30,216),Size=new Size(578,100),BackColor=Color.White};picture.Paint+=DrawBrowser;
-        install.Text="Thêm vào thanh bookmark";install.Location=new Point(30,332);install.Size=new Size(265,43);install.BackColor=Color.FromArgb(191,211,88);install.ForeColor=Color.FromArgb(28,43,18);install.FlatStyle=FlatStyle.Flat;install.FlatAppearance.BorderSize=0;
-        var version=new Label{Text="v1.6.9 · Cập nhật 08/10/2026",Location=new Point(30,383),Size=new Size(578,23),Font=new Font("Segoe UI",9,FontStyle.Italic),ForeColor=Color.Gray};
-        status.Location=new Point(30,413);status.Size=new Size(578,74);status.ForeColor=Color.FromArgb(59,73,49);
-        Controls.AddRange(new Control[]{title,intro,browserLabel,profileLabel,profiles,picture,install,version,status});install.Click+=OnInstall;
-        UpdateBrowserButtons();LoadProfiles();
+        Text="Cài phần mềm lọc hồ sơ tạo báo cáo · v1.6.10 · 08/10/2026";ClientSize=new Size(640,226);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;Font=new Font(uiFonts.Family,9);BackColor=Color.FromArgb(249,250,252);
+        var description=new Label{Text="Cài đặt phần mềm bằng cách thêm vào thanh bookmark",Location=new Point(28,18),Size=new Size(584,30),Font=new Font(uiFonts.Family,13),ForeColor=Color.FromArgb(34,42,55)};
+        intro.Location=new Point(28,54);intro.Size=new Size(584,32);intro.ForeColor=Color.FromArgb(97,105,119);
+        var profileLabel=new Label{Text="Chọn người dùng",Location=new Point(28,70),AutoSize=true};
+        profiles.Location=new Point(150,66);profiles.Size=new Size(148,28);profiles.DropDownStyle=ComboBoxStyle.DropDownList;
+        var browserLabel=new Label{Text="Chọn trình duyệt",Location=new Point(315,70),Size=new Size(110,22)};
+        var tips=new ToolTip();string[] names={"Chrome","Edge","Firefox"};string[] resources={"chrome.png","edge.png","firefox.png"};
+        for(int i=0;i<3;i++){int index=i;var button=new Button{Text="",AccessibleName=names[i],Location=new Point(434+i*48,58),Size=new Size(40,40),FlatStyle=FlatStyle.Flat,ImageAlign=ContentAlignment.MiddleCenter};
+            using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream(resources[i]))using(var source=Image.FromStream(stream))button.Image=new Bitmap(source,new Size(26,26));
+            button.FlatAppearance.BorderSize=1;tips.SetToolTip(button,names[i]);button.Click+=(sender,args)=>{selectedBrowser=names[index];UpdateBrowserButtons();LoadProfiles();};browserButtons[i]=button;Controls.Add(button);
+        }
+        var picture=new Panel{Location=new Point(31,112),Size=new Size(578,100),BackColor=Color.White};picture.Paint+=DrawBrowser;
+        install.Text="Thêm vào thanh bookmark";install.Location=new Point(170,57);install.Size=new Size(240,29);install.BackColor=Color.FromArgb(39,105,218);install.ForeColor=Color.White;install.FlatStyle=FlatStyle.Flat;install.FlatAppearance.BorderSize=0;install.Font=new Font(uiFonts.Family,9,FontStyle.Bold);using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("filter.png"))using(var image=Image.FromStream(stream))install.Image=new Bitmap(image,new Size(16,16));install.TextImageRelation=TextImageRelation.ImageBeforeText;picture.Controls.Add(install);
+        status.Visible=false;status.Location=new Point(0,0);status.Size=new Size(1,1);status.Font=new Font(uiFonts.Family,8);status.ForeColor=Color.FromArgb(97,105,119);
+        Controls.AddRange(new Control[]{description,profileLabel,profiles,browserLabel,picture,status});install.Click+=OnInstall;
+        Disposed+=(sender,args)=>uiFonts.Dispose();UpdateBrowserButtons();LoadProfiles();
     }
-    void UpdateBrowserButtons(){for(int i=0;i<3;i++){bool active=browserButtons[i].Text==selectedBrowser;browserButtons[i].BackColor=active?Color.FromArgb(216,235,173):Color.White;browserButtons[i].FlatAppearance.BorderColor=active?Color.FromArgb(103,139,42):Color.FromArgb(213,220,205);}}
-    static void DrawIcon(Graphics g,int index,int x,int y){
-        g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        if(index==0){using(var red=new SolidBrush(Color.FromArgb(234,67,53)))using(var yellow=new SolidBrush(Color.FromArgb(251,188,5)))using(var green=new SolidBrush(Color.FromArgb(52,168,83))){g.FillPie(red,x,y,27,27,210,120);g.FillPie(yellow,x,y,27,27,330,120);g.FillPie(green,x,y,27,27,90,120);g.FillEllipse(Brushes.White,x+7,y+7,13,13);g.FillEllipse(Brushes.DodgerBlue,x+9,y+9,9,9);}}
-        else if(index==1){using(var gradient=new System.Drawing.Drawing2D.LinearGradientBrush(new Rectangle(x,y,28,28),Color.FromArgb(0,192,147),Color.FromArgb(0,97,211),45)){g.FillEllipse(gradient,x,y,28,28);g.FillEllipse(Brushes.White,x+9,y+8,14,12);g.FillRectangle(gradient,x+3,y+16,20,8);}}
-        else {g.FillEllipse(Brushes.Indigo,x+2,y+2,25,25);using(var flame=new SolidBrush(Color.FromArgb(255,143,24))){g.FillPie(flame,x,y,28,28,15,290);g.FillEllipse(Brushes.Indigo,x+9,y+9,13,12);g.FillPolygon(flame,new Point[]{new Point(x+4,y+12),new Point(x+6,y),new Point(x+15,y+6)});}}
-    }
+    void UpdateBrowserButtons(){string[] names={"Chrome","Edge","Firefox"};for(int i=0;i<3;i++){bool active=names[i]==selectedBrowser;browserButtons[i].BackColor=active?Color.FromArgb(228,238,255):Color.White;browserButtons[i].FlatAppearance.BorderColor=active?Color.FromArgb(39,105,218):Color.FromArgb(221,225,232);}}
     void DrawBrowser(object sender,PaintEventArgs e){
         var g=e.Graphics;g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        using(var toolbar=new SolidBrush(Color.FromArgb(236,239,245)))using(var small=new Font("Segoe UI",9))using(var text=new SolidBrush(Color.FromArgb(55,58,65)))using(var green=new SolidBrush(Color.FromArgb(205,226,157)))using(var border=new Pen(Color.FromArgb(198,205,216))){
+        using(var toolbar=new SolidBrush(Color.FromArgb(236,239,245)))using(var small=new Font(uiFonts.Family,9))using(var text=new SolidBrush(Color.FromArgb(55,58,65)))using(var green=new SolidBrush(Color.FromArgb(205,226,157)))using(var border=new Pen(Color.FromArgb(198,205,216))){
             g.FillRectangle(toolbar,0,0,578,100);g.DrawRectangle(border,0,0,577,99);
             g.DrawString("‹    ›    ↻",small,text,14,15);g.FillRectangle(Brushes.White,98,9,433,31);g.DrawString("⋮",small,text,552,15);g.DrawString("☆",small,Brushes.Gray,507,17);
             g.FillRectangle(Brushes.White,1,49,576,49);g.DrawString("▣  Gmail",small,text,14,65);g.DrawString("▣  Drive",small,text,93,65);
-            g.FillRectangle(green,170,57,209,29);g.DrawString("★  Lọc hồ sơ · Báo cáo",small,text,180,65);g.DrawString("»",small,text,550,65);
+            g.DrawString("»",small,text,550,65);
         }
     }
     void LoadProfiles(){
         profiles.Items.Clear();install.Enabled=true;string browser=selectedBrowser;
         if(browser=="Firefox"){
-            profiles.Enabled=true;intro.Text="Chọn hồ sơ sử dụng. Đóng Firefox trước khi thêm bookmark.";status.Text="";
+            profiles.Enabled=true;intro.Text="Chọn người dùng và đóng Firefox trước khi thêm bookmark.";status.Text="";
             string root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"Mozilla","Firefox"),ini=Path.Combine(root,"profiles.ini");
             try{var section=new Dictionary<string,string>();Action add=()=>{if(!section.ContainsKey("Path"))return;string path=section["Path"];if(!section.ContainsKey("IsRelative")||section["IsRelative"]=="1")path=Path.Combine(root,path.Replace('/',Path.DirectorySeparatorChar));if(File.Exists(Path.Combine(path,"places.sqlite")))profiles.Items.Add(new ProfileChoice{Path=Path.GetFullPath(path),Name=section.ContainsKey("Name")?section["Name"]:Path.GetFileName(path)});};
                 if(File.Exists(ini)){foreach(string line in File.ReadAllLines(ini)){string value=line.Trim();if(value.StartsWith("[")){add();section.Clear();}else{int equal=value.IndexOf('=');if(equal>0)section[value.Substring(0,equal)]=value.Substring(equal+1);}}add();}
-                if(profiles.Items.Count>0)profiles.SelectedIndex=0;else{install.Enabled=false;status.Text="Chưa tìm thấy hồ sơ Firefox. Mở Firefox một lần rồi chạy lại tệp cài đặt.";}
+                if(profiles.Items.Count>0)profiles.SelectedIndex=0;else{install.Enabled=false;status.Text="Chưa tìm thấy hồ sơ Firefox. Mở Firefox một lần rồi chạy lại tệp cài đặt.";intro.Text=status.Text;}
             }catch{install.Enabled=false;status.Text="Không đọc được hồ sơ Firefox. Chưa thay đổi bookmark.";}return;
         }
-        profiles.Enabled=true;intro.Text="Chọn hồ sơ sử dụng. Đóng "+browser+" trước khi thêm bookmark.";status.Text="";
+        profiles.Enabled=true;intro.Text="Chọn người dùng và đóng "+browser+" trước khi thêm bookmark.";status.Text="";
         string vendor=browser=="Edge"?Path.Combine("Microsoft","Edge"):Path.Combine("Google","Chrome");string userData=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),vendor,"User Data");
         try{
             Dictionary<string,object> cache=null;string localState=Path.Combine(userData,"Local State");if(File.Exists(localState)){var state=BookmarkStore.Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(localState));var p=state.ContainsKey("profile")?state["profile"] as Dictionary<string,object>:null;if(p!=null&&p.ContainsKey("info_cache"))cache=p["info_cache"] as Dictionary<string,object>;}
             if(Directory.Exists(userData))foreach(string dir in Directory.GetDirectories(userData)){string id=Path.GetFileName(dir);if(id!="Default"&&!id.StartsWith("Profile "))continue;if(!File.Exists(Path.Combine(dir,"Preferences")))continue;string name=id;if(cache!=null&&cache.ContainsKey(id)){var p=cache[id] as Dictionary<string,object>;if(p!=null&&p.ContainsKey("name"))name=Convert.ToString(p["name"])+" ("+id+")";}profiles.Items.Add(new ProfileChoice{Path=dir,Name=name});}
-            if(profiles.Items.Count>0)profiles.SelectedIndex=0;else{install.Enabled=false;status.Text="Chưa tìm thấy hồ sơ "+browser+". Mở trình duyệt một lần rồi chạy lại tệp cài đặt.";}
+            if(profiles.Items.Count>0)profiles.SelectedIndex=0;else{install.Enabled=false;status.Text="Chưa tìm thấy hồ sơ "+browser+". Mở trình duyệt một lần rồi chạy lại tệp cài đặt.";intro.Text=status.Text;}
         }catch{install.Enabled=false;status.Text="Không đọc được hồ sơ trình duyệt. Chưa thay đổi bookmark.";}
     }
     internal static string FirefoxHtml(string payload){return "<!DOCTYPE NETSCAPE-Bookmark-file-1><META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\"><TITLE>Bookmarks</TITLE><H1>Bookmarks</H1><DL><p><DT><H3 PERSONAL_TOOLBAR_FOLDER=\"true\">Bookmarks Toolbar</H3><DL><p><DT><A HREF=\""+System.Security.SecurityElement.Escape(payload)+"\">Lọc hồ sơ · Báo cáo</A></DL><p></DL><p>";}
     void OnInstall(object sender,EventArgs e){
         try{string browser=selectedBrowser;
             var profile=profiles.SelectedItem as ProfileChoice;if(profile==null)return;
+            string bookmark=BookmarkStore.Payload(browser=="Firefox"?"firefox-bookmark.txt":"bookmark.txt");
             if(browser=="Firefox")FirefoxBookmarks.Install(profile.Path,BookmarkStore.Payload("firefox-bookmark.txt"),true);
-            else BookmarkStore.Install(profile.Path,BookmarkStore.Payload(),true,browser=="Edge"?"msedge":"chrome");status.Text="Đã thêm bookmark! Mở "+browser+" → Ctrl + Shift + B → mở hệ thống → bấm Lọc hồ sơ · Báo cáo.";install.Text="Đã thêm bookmark";install.Enabled=false;MessageBox.Show(this,"Đã thêm bookmark. Các bookmark cũ được giữ lại và sao lưu.","Hoàn tất",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            else BookmarkStore.Install(profile.Path,BookmarkStore.Payload(),true,browser=="Edge"?"msedge":"chrome");bool iconAdded=BookmarkIcon.Apply(profile.Path,bookmark,browser,true);status.Text="Đã thêm bookmark! Mở "+browser+" → Ctrl + Shift + B → mở hệ thống → bấm Lọc hồ sơ · Báo cáo.";install.Text="Đã thêm bookmark";install.Enabled=false;MessageBox.Show(this,"Đã thêm bookmark. Các bookmark cũ được giữ lại và sao lưu."+(iconAdded?"":"\nTrình duyệt có thể hiển thị biểu tượng mặc định."),"Hoàn tất",MessageBoxButtons.OK,MessageBoxIcon.Information);
         }catch(Exception error){MessageBox.Show(this,error.Message,"Chưa thêm được bookmark",MessageBoxButtons.OK,MessageBoxIcon.Information);}
     }
 }
 internal static class Program {
     [STAThread] static int Main(string[] args) {
+        if(args.Length==3&&args[0]=="--icon-test")return BookmarkIcon.Apply(args[2],BookmarkStore.Payload(args[1]=="Firefox"?"firefox-bookmark.txt":"bookmark.txt"),args[1],false)?0:1;
         if(args.Length==2&&args[0]=="--firefox-test"){try{FirefoxBookmarks.Install(args[1],BookmarkStore.Payload("firefox-bookmark.txt"),false);return 0;}catch(Exception error){File.WriteAllText(Path.Combine(args[1],"test-error.txt"),error.ToString());return 1;}}
         if(args.Length==2&&args[0]=="--self-test")return SelfTest(args[1]);
         Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
@@ -139,4 +138,6 @@ internal static class Program {
         }catch(Exception e){File.WriteAllText(Path.Combine(folder,"self-test.txt"),e.ToString());return 1;}
     }
 }
+
+
 
