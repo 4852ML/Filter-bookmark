@@ -13,7 +13,7 @@ internal static class BookmarkStore {
     internal const string Title = "Lọc hồ sơ · Báo cáo";
     internal static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 16777216 };
     internal static string Payload() { using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("bookmark.txt")) using (var r = new StreamReader(s, Encoding.UTF8)) return r.ReadToEnd().Trim(); }
-    internal static bool ChromeRunning() { return Process.GetProcessesByName("chrome").Length != 0; }
+    internal static bool ChromeRunning(string processName = "chrome") { return Process.GetProcessesByName(processName).Length != 0; }
     static long MaxId(object value) {
         long max = 0, n;
         var d = value as Dictionary<string, object>;
@@ -21,9 +21,9 @@ internal static class BookmarkStore {
         var list = value as IList; if (list != null) foreach (var v in list) max = Math.Max(max, MaxId(v));
         return max;
     }
-    internal static string Install(string profile, string payload, bool checkChrome) {
-        if (checkChrome && ChromeRunning()) throw new InvalidOperationException("Vui lòng đóng tất cả cửa sổ Chrome trước khi cài. Nếu Chrome vẫn chạy nền, thoát Chrome ở khay hệ thống rồi thử lại.");
-        if (!Directory.Exists(profile)) throw new InvalidOperationException("Không tìm thấy hồ sơ Chrome đã chọn.");
+    internal static string Install(string profile, string payload, bool checkChrome, string processName = "chrome") {
+        if (checkChrome && ChromeRunning(processName)) throw new InvalidOperationException("Vui lòng đóng tất cả cửa sổ trình duyệt đã chọn trước khi cài. Nếu trình duyệt vẫn chạy nền, thoát trình duyệt ở khay hệ thống rồi thử lại.");
+        if (!Directory.Exists(profile)) throw new InvalidOperationException("Không tìm thấy hồ sơ trình duyệt đã chọn.");
         string file = Path.Combine(profile, "Bookmarks"), original = File.Exists(file) ? File.ReadAllText(file, Encoding.UTF8) : null;
         var root = original == null ? new Dictionary<string, object> { {"version", 1}, {"roots", new Dictionary<string, object> { {"bookmark_bar", new Dictionary<string, object> { {"id", "1"}, {"name", "Bookmarks bar"}, {"type", "folder"}, {"children", new object[0]} }}, {"other", new Dictionary<string, object> { {"id", "2"}, {"name", "Other bookmarks"}, {"type", "folder"}, {"children", new object[0]} }}, {"synced", new Dictionary<string, object> { {"id", "3"}, {"name", "Mobile bookmarks"}, {"type", "folder"}, {"children", new object[0]} }} } } } : Json.Deserialize<Dictionary<string, object>>(original);
         if (!root.ContainsKey("version") || Convert.ToInt32(root["version"]) != 1) throw new InvalidOperationException("Định dạng dấu trang chưa được hỗ trợ. Dữ liệu chưa được thay đổi.");
@@ -44,7 +44,7 @@ internal static class BookmarkStore {
         string pending = file + ".loc-ho-so-" + Guid.NewGuid().ToString("N") + ".tmp";
         try {
             File.WriteAllText(pending, serialized, new UTF8Encoding(false));
-            if (checkChrome && ChromeRunning()) throw new InvalidOperationException("Chrome vừa được mở lại. Hãy đóng Chrome rồi thử lại.");
+            if (checkChrome && ChromeRunning(processName)) throw new InvalidOperationException("Trình duyệt vừa được mở lại. Hãy đóng trình duyệt rồi thử lại.");
             if (original != null) { if (File.ReadAllText(file, Encoding.UTF8) != original) throw new InvalidOperationException("Dấu trang đã thay đổi trong lúc cài. Hãy thử lại."); File.Replace(pending, file, backup); }
             else File.Move(pending, file);
         } finally { if (File.Exists(pending)) File.Delete(pending); }
@@ -54,34 +54,55 @@ internal static class BookmarkStore {
 
 internal sealed class ProfileChoice { internal string Path; internal string Name; public override string ToString() { return Name; } }
 internal sealed class InstallerForm : Form {
-    readonly ComboBox profiles = new ComboBox(); readonly Button install = new Button(); readonly Label status = new Label();
+    readonly ComboBox browsers=new ComboBox(), profiles=new ComboBox(); readonly Button install=new Button(); readonly Label status=new Label(),intro=new Label();
     internal InstallerForm() {
-        Text = "Cài Lọc hồ sơ · Báo cáo"; ClientSize = new Size(620,400); FormBorderStyle=FormBorderStyle.FixedDialog; MaximizeBox=false; StartPosition=FormStartPosition.CenterScreen; Font=new Font("Segoe UI",10); BackColor=Color.White;
-        var title=new Label {Text="Thêm nút Lọc hồ sơ vào Chrome",Location=new Point(28,24),Size=new Size(560,45),Font=new Font("Segoe UI",18,FontStyle.Bold),ForeColor=Color.FromArgb(24,83,133)};
-        var intro=new Label {Text="Chọn hồ sơ Chrome, đóng Chrome rồi bấm Cài dấu trang.\nỨng dụng kiểm tra phiên bản mới trên GitHub mỗi lần bạn mở bằng dấu trang.",Location=new Point(30,80),Size=new Size(560,65)};
-        profiles.Location=new Point(30,154);profiles.Size=new Size(560,32);profiles.DropDownStyle=ComboBoxStyle.DropDownList;
-        install.Text="Cài dấu trang";install.Location=new Point(30,204);install.Size=new Size(170,42);install.BackColor=Color.FromArgb(24,105,175);install.ForeColor=Color.White; install.FlatStyle=FlatStyle.Flat;
-        status.Location=new Point(30,260);status.Size=new Size(560,115);status.Text="Không cần quyền quản trị. Các dấu trang hiện có được giữ lại và sao lưu.\nChỉ mã ứng dụng được tải từ GitHub. Dữ liệu người khám không được gửi lên GitHub.";
-        Controls.AddRange(new Control[]{title,intro,profiles,install,status}); install.Click+=OnInstall; LoadProfiles();
+        Text="Cài phần mềm lọc hồ sơ tạo báo cáo"; ClientSize=new Size(640,490);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(247,249,243);
+        var title=new Label {Text="Thêm nút lọc hồ sơ vào Chrome",Location=new Point(28,22),Size=new Size(585,36),Font=new Font("Segoe UI",17,FontStyle.Bold),ForeColor=Color.FromArgb(41,64,31)};
+        intro.Location=new Point(30,64);intro.Size=new Size(580,40);
+        var browserLabel=new Label{Text="Trình duyệt",Location=new Point(30,116),Size=new Size(140,22)};browsers.Location=new Point(30,142);browsers.Size=new Size(200,30);browsers.DropDownStyle=ComboBoxStyle.DropDownList;browsers.Items.AddRange(new object[]{"Chrome","Edge","Firefox"});
+        var profileLabel=new Label{Text="Hồ sơ sử dụng",Location=new Point(248,116),Size=new Size(340,22)};profiles.Location=new Point(248,142);profiles.Size=new Size(360,30);profiles.DropDownStyle=ComboBoxStyle.DropDownList;
+        var picture=new Panel{Location=new Point(30,194),Size=new Size(578,100),BackColor=Color.White};picture.Paint+=DrawBrowser;
+        install.Text="Thêm vào thanh bookmark";install.Location=new Point(30,313);install.Size=new Size(265,43);install.BackColor=Color.FromArgb(191,211,88);install.ForeColor=Color.FromArgb(28,43,18);install.FlatStyle=FlatStyle.Flat;install.FlatAppearance.BorderSize=0;
+        var version=new Label{Text="v1.6.8 · Cập nhật 08/10/2026",Location=new Point(30,367),Size=new Size(578,23),Font=new Font("Segoe UI",9,FontStyle.Italic),ForeColor=Color.Gray};
+        status.Location=new Point(30,399);status.Size=new Size(578,74);status.ForeColor=Color.FromArgb(59,73,49);
+        Controls.AddRange(new Control[]{title,intro,browserLabel,browsers,profileLabel,profiles,picture,install,version,status});install.Click+=OnInstall;
+        browsers.SelectedIndexChanged+=(sender,args)=>{title.Text="Thêm nút lọc hồ sơ vào "+browsers.SelectedItem;LoadProfiles();};browsers.SelectedIndex=0;
     }
-    void LoadProfiles() {
-        string userData=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Google","Chrome","User Data");
-        try {
-            Dictionary<string,object> cache=null; string localState=Path.Combine(userData,"Local State");
-            if(File.Exists(localState)) { var state=BookmarkStore.Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(localState)); var p=state.ContainsKey("profile")?state["profile"] as Dictionary<string,object>:null; if(p!=null&&p.ContainsKey("info_cache"))cache=p["info_cache"] as Dictionary<string,object>; }
-            if(Directory.Exists(userData))foreach(string dir in Directory.GetDirectories(userData)) { string id=Path.GetFileName(dir); if(id!="Default"&&!id.StartsWith("Profile "))continue; if(!File.Exists(Path.Combine(dir,"Preferences")))continue; string name=id; if(cache!=null&&cache.ContainsKey(id)){var p=cache[id] as Dictionary<string,object>; if(p!=null&&p.ContainsKey("name"))name=Convert.ToString(p["name"])+" ("+id+")";} profiles.Items.Add(new ProfileChoice{Path=dir,Name=name}); }
-            if(profiles.Items.Count>0)profiles.SelectedIndex=0;else{install.Enabled=false;status.Text="Chưa tìm thấy hồ sơ Chrome. Mở Chrome một lần rồi chạy lại tệp cài đặt.";}
-        } catch { install.Enabled=false; status.Text="Không đọc được hồ sơ Chrome. Chưa thay đổi dấu trang."; }
+    void DrawBrowser(object sender,PaintEventArgs e){
+        var g=e.Graphics;g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        using(var border=new Pen(Color.FromArgb(208,216,200)))using(var address=new SolidBrush(Color.FromArgb(235,239,231)))using(var bookmark=new SolidBrush(Color.FromArgb(213,228,173)))using(var text=new SolidBrush(Color.FromArgb(43,58,35)))using(var small=new Font("Segoe UI",9)){
+            g.DrawRectangle(border,0,0,577,99);g.FillRectangle(address,8,8,561,34);g.DrawString("‹    ›    ↻",small,text,16,17);g.FillRectangle(Brushes.White,103,13,432,24);g.DrawString("Thanh địa chỉ",small,Brushes.Gray,117,17);
+            g.FillRectangle(bookmark,15,53,232,34);g.DrawString("★  Lọc hồ sơ · Báo cáo",small,text,25,61);g.DrawString("Thanh bookmark",small,Brushes.Gray,266,61);
+        }
     }
-    void OnInstall(object sender,EventArgs e) {
-        try { var p=profiles.SelectedItem as ProfileChoice; if(p==null)return; string backup=BookmarkStore.Install(p.Path,BookmarkStore.Payload(),true); status.Text="Đã cài thành công!\nMở Chrome → Ctrl + Shift + B → đăng nhập hệ thống → bấm Lọc hồ sơ · Báo cáo.\nBấm Xem trên danh sách một lần để kết nối ứng dụng."; install.Text="Đã cài"; install.Enabled=false; MessageBox.Show(this,"Đã thêm dấu trang vào Chrome."+(backup==null?"":"\nĐã lưu bản sao dấu trang cũ trong hồ sơ Chrome."),"Hoàn tất",MessageBoxButtons.OK,MessageBoxIcon.Information); }
-        catch(Exception error){MessageBox.Show(this,error.Message,"Chưa cài được",MessageBoxButtons.OK,MessageBoxIcon.Information);}
+    void LoadProfiles(){
+        profiles.Items.Clear();install.Enabled=true;string browser=Convert.ToString(browsers.SelectedItem);
+        if(browser=="Firefox"){profiles.Items.Add("Hồ sơ đang dùng trong Firefox");profiles.SelectedIndex=0;profiles.Enabled=false;intro.Text="Tạo tệp bookmark, sau đó nhập tệp vào Firefox theo hướng dẫn.";status.Text="Firefox dùng bước nhập bookmark. Các bookmark hiện có được giữ nguyên.";return;}
+        profiles.Enabled=true;intro.Text="Chọn hồ sơ sử dụng. Đóng "+browser+" trước khi thêm bookmark.";status.Text="";
+        string vendor=browser=="Edge"?Path.Combine("Microsoft","Edge"):Path.Combine("Google","Chrome");string userData=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),vendor,"User Data");
+        try{
+            Dictionary<string,object> cache=null;string localState=Path.Combine(userData,"Local State");if(File.Exists(localState)){var state=BookmarkStore.Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(localState));var p=state.ContainsKey("profile")?state["profile"] as Dictionary<string,object>:null;if(p!=null&&p.ContainsKey("info_cache"))cache=p["info_cache"] as Dictionary<string,object>;}
+            if(Directory.Exists(userData))foreach(string dir in Directory.GetDirectories(userData)){string id=Path.GetFileName(dir);if(id!="Default"&&!id.StartsWith("Profile "))continue;if(!File.Exists(Path.Combine(dir,"Preferences")))continue;string name=id;if(cache!=null&&cache.ContainsKey(id)){var p=cache[id] as Dictionary<string,object>;if(p!=null&&p.ContainsKey("name"))name=Convert.ToString(p["name"])+" ("+id+")";}profiles.Items.Add(new ProfileChoice{Path=dir,Name=name});}
+            if(profiles.Items.Count>0)profiles.SelectedIndex=0;else{install.Enabled=false;status.Text="Chưa tìm thấy hồ sơ "+browser+". Mở trình duyệt một lần rồi chạy lại tệp cài đặt.";}
+        }catch{install.Enabled=false;status.Text="Không đọc được hồ sơ trình duyệt. Chưa thay đổi bookmark.";}
+    }
+    internal static string FirefoxHtml(string payload){return "<!DOCTYPE NETSCAPE-Bookmark-file-1><META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\"><TITLE>Bookmarks</TITLE><H1>Bookmarks</H1><DL><p><DT><H3 PERSONAL_TOOLBAR_FOLDER=\"true\">Bookmarks Toolbar</H3><DL><p><DT><A HREF=\""+System.Security.SecurityElement.Escape(payload)+"\">Lọc hồ sơ · Báo cáo</A></DL><p></DL><p>";}
+    void OnInstall(object sender,EventArgs e){
+        try{string browser=Convert.ToString(browsers.SelectedItem);
+            if(browser=="Firefox"){using(var save=new SaveFileDialog{FileName="Loc-ho-so-bookmark.html",Filter="Bookmark HTML|*.html",Title="Lưu bookmark cho Firefox"}){if(save.ShowDialog(this)!=DialogResult.OK)return;File.WriteAllText(save.FileName,FirefoxHtml(BookmarkStore.Payload()),new UTF8Encoding(false));status.Text="Đã tạo tệp bookmark. Trong Firefox: Ctrl + Shift + O → Import and Backup → Import Bookmarks from HTML → chọn tệp vừa lưu.";MessageBox.Show(this,status.Text,"Nhập bookmark vào Firefox",MessageBoxButtons.OK,MessageBoxIcon.Information);}return;}
+            var profile=profiles.SelectedItem as ProfileChoice;if(profile==null)return;BookmarkStore.Install(profile.Path,BookmarkStore.Payload(),true,browser=="Edge"?"msedge":"chrome");status.Text="Đã thêm bookmark! Mở "+browser+" → Ctrl + Shift + B → mở hệ thống → bấm Lọc hồ sơ · Báo cáo.";install.Text="Đã thêm bookmark";install.Enabled=false;MessageBox.Show(this,"Đã thêm bookmark. Các bookmark cũ được giữ lại và sao lưu.","Hoàn tất",MessageBoxButtons.OK,MessageBoxIcon.Information);
+        }catch(Exception error){MessageBox.Show(this,error.Message,"Chưa thêm được bookmark",MessageBoxButtons.OK,MessageBoxIcon.Information);}
     }
 }
 internal static class Program {
     [STAThread] static int Main(string[] args) {
         if(args.Length==2&&args[0]=="--self-test")return SelfTest(args[1]);
-        Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);Application.Run(new InstallerForm());return 0;
+        Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
+        if(args.Length==2&&args[0]=="--preview"){using(var form=new InstallerForm()){PreparePreview(form);form.PerformLayout();using(var bitmap=new Bitmap(form.Width,form.Height)){form.DrawToBitmap(bitmap,new Rectangle(0,0,form.Width,form.Height));bitmap.Save(args[1],System.Drawing.Imaging.ImageFormat.Png);}}return 0;}
+        Application.Run(new InstallerForm());return 0;
+    }
+    static void PreparePreview(Control control){
+        var method=typeof(Control).GetMethod("CreateControl",BindingFlags.Instance|BindingFlags.NonPublic,null,new Type[]{typeof(bool)},null);method.Invoke(control,new object[]{true});foreach(Control child in control.Controls)PreparePreview(child);
     }
     static int SelfTest(string folder) {
         try {
@@ -92,7 +113,9 @@ internal static class Program {
             if(nodes.Count!=2||((Dictionary<string,object>)nodes[0])["url"].ToString()!="https://example.com")throw new Exception("Existing bookmark altered");
             BookmarkStore.Install(folder,BookmarkStore.Payload(),false);root=BookmarkStore.Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(file));roots=(Dictionary<string,object>)root["roots"];bar=(Dictionary<string,object>)roots["bookmark_bar"];if(((IList)bar["children"]).Count!=2)throw new Exception("Duplicate app bookmark");
             File.WriteAllText(file,"not json");bool stopped=false;try{BookmarkStore.Install(folder,BookmarkStore.Payload(),false);}catch{stopped=true;}if(!stopped||File.ReadAllText(file)!="not json")throw new Exception("Malformed data overwritten");
-            File.WriteAllText(Path.Combine(folder,"self-test.txt"),"PASS: backup, preserve existing bookmarks, idempotent update, malformed-data rejection.\n",Encoding.UTF8);return 0;
+            string edgeFolder=Path.Combine(folder,"edge");Directory.CreateDirectory(edgeFolder);File.WriteAllText(Path.Combine(edgeFolder,"Bookmarks"),fixture,new UTF8Encoding(false));BookmarkStore.Install(edgeFolder,BookmarkStore.Payload(),false,"msedge");BookmarkStore.Install(edgeFolder,BookmarkStore.Payload(),false,"msedge");var edgeRoot=BookmarkStore.Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(edgeFolder,"Bookmarks")));var edgeRoots=(Dictionary<string,object>)edgeRoot["roots"];var edgeBar=(Dictionary<string,object>)edgeRoots["bookmark_bar"];if(((IList)edgeBar["children"]).Count!=2)throw new Exception("Edge bookmark update failed");
+            string html=InstallerForm.FirefoxHtml(BookmarkStore.Payload());if(!html.Contains("PERSONAL_TOOLBAR_FOLDER")||!html.Contains("javascript:"))throw new Exception("Firefox import invalid");
+            File.WriteAllText(Path.Combine(folder,"self-test.txt"),"PASS: Chrome/Edge backup and bookmark preservation, idempotent update, malformed-data rejection, Firefox import HTML.\n",Encoding.UTF8);return 0;
         }catch(Exception e){File.WriteAllText(Path.Combine(folder,"self-test.txt"),e.ToString());return 1;}
     }
 }
