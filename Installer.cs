@@ -56,7 +56,7 @@ internal sealed class ProfileChoice { internal string Path; internal string Name
 internal sealed class InstallerForm : Form {
     readonly InstallerFonts uiFonts=new InstallerFonts();string selectedBrowser="Chrome"; readonly Button[] browserButtons=new Button[3]; readonly ComboBox profiles=new ComboBox(); readonly Button install=new Button(); readonly Label status=new Label(),intro=new Label();
     internal InstallerForm() {
-        Text="Cài phần mềm lọc hồ sơ tạo báo cáo · v1.6.10 · 08/10/2026";ClientSize=new Size(640,226);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;Font=new Font(uiFonts.Family,9);BackColor=Color.FromArgb(249,250,252);
+        Text="Cài phần mềm lọc hồ sơ tạo báo cáo · v1.6.29 · 09/10/2026";ClientSize=new Size(640,226);FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;Font=new Font(uiFonts.Family,9);BackColor=Color.FromArgb(249,250,252);
         var description=new Label{Text="Cài đặt phần mềm bằng cách thêm vào thanh bookmark",Location=new Point(28,18),Size=new Size(584,30),Font=new Font(uiFonts.Family,13),ForeColor=Color.FromArgb(34,42,55)};
         intro.Location=new Point(28,54);intro.Size=new Size(584,32);intro.ForeColor=Color.FromArgb(97,105,119);
         var profileLabel=new Label{Text="Chọn người dùng",Location=new Point(28,70),AutoSize=true};
