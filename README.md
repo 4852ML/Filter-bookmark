@@ -1,16 +1,13 @@
-# Lọc hồ sơ · Báo cáo
-
-Ứng dụng mở nhanh bằng bookmark trên Windows, hỗ trợ Chrome, Edge và Firefox.
-
-[Tải tệp cài đặt](https://github.com/4852ML/loc-ho-so-bookmark/raw/refs/heads/main/Filter%20and%20Report%20Installer.exe).
-
-1. Chạy tệp cài đặt, chọn Chrome, Edge hoặc Firefox. Chọn đúng hồ sơ trình duyệt.
-2. Đóng trình duyệt đã chọn rồi bấm **Thêm vào thanh bookmark**. Firefox cần kết nối Internet khi mở ứng dụng.
-3. Nhấn **Ctrl + Shift + B**, đăng nhập website do đơn vị cung cấp rồi bấm **Lọc hồ sơ · Báo cáo**.
-4. Chọn thời gian rồi bấm **Tìm hồ sơ**. Có thể bắt đầu ngay trên trang chủ; ứng dụng tự xác minh phiên đăng nhập và menu của tài khoản, không cần nút Xem. Chọn một hoặc nhiều đơn vị sau khi tải xong.
-
-Bản 1.6.31 cho chọn từng danh sách M1–M6, mặc định chưa chọn danh sách; danh sách khác xuất hiện khi có trong menu. M5–M6 đang hoàn thiện nên chỉ chọn khi cần. Báo cáo dùng Times New Roman, có tổng phân loại trong Excel, không màu và không chân trang. Mỗi lần mở, ứng dụng kiểm tra bản mới tại kho này. Cập nhật chỉ có hiệu lực sau khi người duy trì xuất bản. Khi chưa kết nối được, ứng dụng thông báo và dùng bản cài sẵn. Nếu đã mở bản cũ, tải lại trang; nếu đang dùng tiện ích Chrome cũ, tắt tiện ích đó trước khi chuyển sang dấu trang.
-
-Các gói cấu hình được đóng gói dưới dạng mã hóa; địa chỉ website không xuất hiện ở dạng đọc được trong kho hoặc tệp cài đặt. Dấu trang dùng địa chỉ website đang mở để đọc cấu hình. Cách này che địa chỉ khỏi việc đọc trực tiếp tệp tải xuống, không phải cơ chế kiểm soát truy cập: người biết địa chỉ có thể đọc cấu hình. Người dùng vẫn cần đăng nhập hệ thống bằng tài khoản riêng. Kho này không chứa dữ liệu người khám hay thông tin đăng nhập. Cập nhật không gửi các dữ liệu đó lên GitHub.
-
-Tệp cài đặt không có chữ ký số; Windows có thể thông báo nhà phát hành chưa xác định. Không cần quyền quản trị. Dấu trang hiện có được giữ và sao lưu trong hồ sơ trình duyệt.
+Record Filter · Reports
+A Windows bookmark app for Chrome, Edge, and Firefox.
+Download the v1.6.31 installer.
+1. Run the installer, select your browser, and choose the correct browser profile.
+2. Close the selected browser, then click “Add to bookmarks bar”. Firefox requires an internet connection to launch the app.
+3. Press Ctrl + Shift + B to display the bookmarks bar. Sign in to the website provided by your organization, then click Filter and report.
+4. Select the lists and date range, then click “Find records”. You can start from the homepage; the app detects your existing session and available lists. After loading, select one or more workplaces or schools.
+5. Click “Generate report” to view and export the report, or “View raw data” to inspect record details.
+Reports use Times New Roman, include health-grade totals in Excel, and have monochrome formatting with no footer.
+Each time the bookmark opens, it checks for published updates. If the update check fails, the app displays a notice and uses its bundled version. Refresh the website before opening an updated version. If you previously used the Chrome extension, disable it before switching to the bookmark app.
+Configuration packages are encrypted. The website address does not appear as readable text in the repository or installer. The bookmark uses the currently open website’s address to decode its configuration. This conceals the address from direct inspection; it is not an access-control mechanism. Users must still sign in with their own accounts.
+The repository contains no patient data or login credentials. Update checks do not send that information to GitHub.
+The installer is not digitally signed, so Windows may display an “Unknown publisher” warning. Administrator privileges are not required. Existing bookmarks are preserved, and a backup is saved in the browser profile.
